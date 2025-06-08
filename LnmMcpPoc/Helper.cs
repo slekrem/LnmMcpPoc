@@ -18,9 +18,19 @@ public static class Helper
             "s",
             "yyyy-MM-dd"
         };
+
+        // Try parse as date string
         if (DateTime.TryParseExact(input, formats, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out DateTime ts))
             return ts;
-        throw new Exception();
+
+        // Try parse as unix timestamp in milliseconds
+        if (long.TryParse(input, out long unixMillis) && unixMillis > 1000000000000)
+        {
+            var epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            return epoch.AddMilliseconds(unixMillis);
+        }
+
+        throw new Exception("Input string is not a valid date or unix timestamp.");
     }
 
     public static HttpClient GetLnmClient(this LnMarketsOptions options, string method, string path, string @params = "")
