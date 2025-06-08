@@ -475,4 +475,10 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
         var response = await httpClient.PostAsync($"https://api.lnmarkets.com{path}", new StringContent(@params, Encoding.UTF8, "application/json"));
         return await response.Content.ReadAsStringAsync();
     }
+
+    [McpServerTool, Description("Get the current Time")]
+    public string CurrentTime()
+    {
+        return DateTime.Now.ToString();
+    }
 }
