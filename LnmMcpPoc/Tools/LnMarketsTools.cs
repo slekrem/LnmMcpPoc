@@ -163,8 +163,8 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
         return await httpClient.GetStringAsync($"https://api.lnmarkets.com{path}?{@params}");
     }
 
-    [McpServerTool, Description("Retrieve index history at most 1000 entries between two given timestamps")]
-    public async Task<string> Price_history(string from, string to, int limit = 1000)
+    [McpServerTool, Description("Retrieve index history at most 100 entries between two given timestamps")]
+    public async Task<string> Price_history(string from, string to, int limit = 100)
     {
         var fromMs = new DateTimeOffset(from.ToDateTime()).ToUnixTimeMilliseconds();
         var toMs = new DateTimeOffset(to.ToDateTime()).ToUnixTimeMilliseconds();
@@ -243,7 +243,8 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
         var path = "/v2/futures/ohlcs";
         var @params = $"from={fromMs}&to={toMs}&range={selected.Name}&limit={limit}";
         var httpClient = opt.Value.GetLnmClient("GET", path, @params);
-        return await httpClient.GetStringAsync($"https://api.lnmarkets.com{path}?{@params}");
+        var data = await httpClient.GetFromJsonAsync<List<OhlcModel>>($"https://api.lnmarkets.com{path}?{@params}") ?? new List<OhlcModel>();
+        return JsonSerializer.Serialize(data.Select(x => new { x.Open, x.High, x.Low, x.Close, x.Volume, x.Time, x.TimeAsDateTime }));
     }
 
     [McpServerTool, Description("Get LN Markets ApiKey, Secret, Passphrase and BaseUrl")]
