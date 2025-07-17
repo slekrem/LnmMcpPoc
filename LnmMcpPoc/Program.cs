@@ -25,4 +25,7 @@ builder.Services
       .WithToolsFromAssembly();
 
 var host = builder.Build();
+
+host.MapMcp();
+
 await host.RunAsync();
