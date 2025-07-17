@@ -19,7 +19,8 @@ builder.Services
       .BindConfiguration("LnMarkets")
       .Services
       .AddMcpServer()
-      .WithStdioServerTransport()
+      .WithHttpTransport()
+      //.WithStdioServerTransport()
       .WithToolsFromAssembly();
 
 var host = builder.Build();
