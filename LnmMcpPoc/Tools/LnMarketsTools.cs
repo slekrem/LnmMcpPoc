@@ -424,7 +424,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     {
         var path = "/v2/user/deposit";
         var @params = $"{{\"amount\":{amount}}}";
-        var httpClient = opt.Value.GetLnmClient("GET", path);
+        var httpClient = opt.Value.GetLnmClient("POST", path, @params);
         var response = await httpClient.PostAsync($"https://api.lnmarkets.com{path}", new StringContent(@params, Encoding.UTF8, "application/json"));
         return await response.Content.ReadAsStringAsync();
     }
