@@ -451,8 +451,8 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     public async Task<string> Create_a_new_withdrawal(string invoice)
     {
         var path = "/v2/user/withdraw";
-        var @params = $"{{\"invoice\":{invoice}}}";
-        var httpClient = opt.Value.GetLnmClient("POST", path);
+        var @params = $"{{\"invoice\":\"{invoice}\"}}";
+        var httpClient = opt.Value.GetLnmClient("POST", path, @params);
         var response = await httpClient.PostAsync($"https://api.lnmarkets.com{path}", new StringContent(@params, Encoding.UTF8, "application/json"));
         return await response.Content.ReadAsStringAsync();
     }
