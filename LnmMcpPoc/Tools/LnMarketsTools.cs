@@ -2,18 +2,34 @@ using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.WebUtilities;
 using ModelContextProtocol.Server;
 
 [McpServerToolType]
-public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
+public class LnMarketsTools
 {
+    private readonly LnMarketsOptions opt;
+    public LnMarketsTools(IHttpContextAccessor _httpContext)
+    {
+        var queryString = _httpContext.HttpContext?.Request.QueryString;
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(queryString?.Value ?? "");
+
+        opt = new LnMarketsOptions
+        {
+            ApiKey = query.TryGetValue("apikey", out var apiKey) ? apiKey.ToString() : "",
+            Secret = query.TryGetValue("secret", out var secret) ? secret.ToString() : "",
+            Passphrase = query.TryGetValue("passphrase", out var passphrase) ? passphrase.ToString() : "",
+            BaseUrl = query.TryGetValue("baseurl", out var baseUrl) ? baseUrl.ToString() : "https://api.lnmarkets.com/v2"
+        };
+    }
+
     [McpServerTool, Description("Add margin to a active futures trade")]
     public async Task<string> Add_margin_to_futures_trade(string id, int amount)
     {
         var path = "/v2/futures/add-margin";
         var @params = $"{{\"id\":\"{id}\",\"amount\":{amount}}}";
-        var httpClient = opt.Value.GetLnmClient("POST", path, @params);
+        var httpClient = opt.GetLnmClient("POST", path, @params);
         var response = await httpClient.PostAsync($"https://api.lnmarkets.com{path}", new StringContent(@params, Encoding.UTF8, "application/json"));
         return await response.Content.ReadAsStringAsync();
     }
@@ -22,7 +38,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     public async Task<string> Cancel_all_pending_orders()
     {
         var path = "/v2/futures/all/cancel";
-        var httpClient = opt.Value.GetLnmClient("DELETE", path);
+        var httpClient = opt.GetLnmClient("DELETE", path);
         var response = await httpClient.DeleteAsync($"https://api.lnmarkets.com{path}");
         return await response.Content.ReadAsStringAsync();
     }
@@ -32,7 +48,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     {
         var path = "/v2/futures/cancel";
         var @params = $"{{\"id\":\"{id}\"}}";
-        var httpClient = opt.Value.GetLnmClient("POST", path, @params);
+        var httpClient = opt.GetLnmClient("POST", path, @params);
         var response = await httpClient.PostAsync($"https://api.lnmarkets.com{path}", new StringContent(@params, Encoding.UTF8, "application/json"));
         return await response.Content.ReadAsStringAsync();
     }
@@ -42,7 +58,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     {
         var path = "/v2/futures/cash-in";
         var @params = $"{{\"id\":\"{id}\",\"amount\":{amount}}}";
-        var httpClient = opt.Value.GetLnmClient("POST", path, @params);
+        var httpClient = opt.GetLnmClient("POST", path, @params);
         var response = await httpClient.PostAsync($"https://api.lnmarkets.com{path}", new StringContent(@params, Encoding.UTF8, "application/json"));
         return await response.Content.ReadAsStringAsync();
     }
@@ -51,7 +67,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     public async Task<string> Close_all_active_positions()
     {
         var path = "/v2/futures/all/close";
-        var httpClient = opt.Value.GetLnmClient("DELETE", path);
+        var httpClient = opt.GetLnmClient("DELETE", path);
         var response = await httpClient.DeleteAsync($"https://api.lnmarkets.com{path}");
         return await response.Content.ReadAsStringAsync();
     }
@@ -61,7 +77,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     {
         var path = "/v2/futures";
         var @params = $"type={type}";
-        var httpClient = opt.Value.GetLnmClient("GET", path, @params);
+        var httpClient = opt.GetLnmClient("GET", path, @params);
         var data = await httpClient.GetFromJsonAsync<List<TradeModel>>($"https://api.lnmarkets.com/v2/futures?{@params}");
         data = data.Where(x => x.Canceled == false).ToList();
         return JsonSerializer.Serialize(data);
@@ -72,7 +88,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     {
         var path = "/v2/futures";
         var @params = $"{{\"side\":\"b\",\"type\":\"l\",\"price\":{price},\"takeprofit\":{takeprofit},\"leverage\":{leverage},\"quantity\":{quantity}}}";
-        var httpClient = opt.Value.GetLnmClient("POST", path, @params);
+        var httpClient = opt.GetLnmClient("POST", path, @params);
         var response = await httpClient.PostAsync($"https://api.lnmarkets.com{path}", new StringContent(@params, Encoding.UTF8, "application/json"));
         return await response.Content.ReadAsStringAsync();
     }
@@ -82,7 +98,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     {
         var path = "/v2/futures";
         var @params = $"{{\"side\":\"s\",\"type\":\"l\",\"price\":{price},\"takeprofit\":{takeprofit},\"leverage\":{leverage},\"quantity\":{quantity}}}";
-        var httpClient = opt.Value.GetLnmClient("POST", path, @params);
+        var httpClient = opt.GetLnmClient("POST", path, @params);
         var response = await httpClient.PostAsync($"https://api.lnmarkets.com{path}", new StringContent(@params, Encoding.UTF8, "application/json"));
         return await response.Content.ReadAsStringAsync();
     }
@@ -92,7 +108,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     {
         var path = "/v2/futures";
         var @params = $"{{\"side\":\"b\",\"type\":\"m\",\"takeprofit\":{takeprofit},\"leverage\":{leverage},\"quantity\":{quantity}}}";
-        var httpClient = opt.Value.GetLnmClient("POST", path, @params);
+        var httpClient = opt.GetLnmClient("POST", path, @params);
         var response = await httpClient.PostAsync($"https://api.lnmarkets.com{path}", new StringContent(@params, Encoding.UTF8, "application/json"));
         return await response.Content.ReadAsStringAsync();
     }
@@ -102,7 +118,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     {
         var path = "/v2/futures";
         var @params = $"{{\"side\":\"s\",\"type\":\"m\",\"takeprofit\":{takeprofit},\"leverage\":{leverage},\"quantity\":{quantity}}}";
-        var httpClient = opt.Value.GetLnmClient("POST", path, @params);
+        var httpClient = opt.GetLnmClient("POST", path, @params);
         var response = await httpClient.PostAsync($"https://api.lnmarkets.com{path}", new StringContent(@params, Encoding.UTF8, "application/json"));
         return await response.Content.ReadAsStringAsync();
     }
@@ -112,7 +128,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     {
         var path = "/v2/futures";
         var @params = $"{{\"id\":\"{id}\",\"type\":\"stoploss\",\"value\":{value}}}";
-        var httpClient = opt.Value.GetLnmClient("PUT", path, @params);
+        var httpClient = opt.GetLnmClient("PUT", path, @params);
         var response = await httpClient.PutAsync($"https://api.lnmarkets.com{path}", new StringContent(@params, Encoding.UTF8, "application/json"));
         return await response.Content.ReadAsStringAsync();
     }
@@ -122,7 +138,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     {
         var path = "/v2/futures";
         var @params = $"{{\"id\":\"{id}\",\"type\":\"takeprofit\",\"value\":{value}}}";
-        var httpClient = opt.Value.GetLnmClient("PUT", path, @params);
+        var httpClient = opt.GetLnmClient("PUT", path, @params);
         var response = await httpClient.PutAsync($"https://api.lnmarkets.com{path}", new StringContent(@params, Encoding.UTF8, "application/json"));
         return await response.Content.ReadAsStringAsync();
     }
@@ -135,7 +151,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
 
         var path = "/v2/futures/carry-fees";
         var @params = $"from={fromMs}&to={toMs}&limit={limit}";
-        var httpClient = opt.Value.GetLnmClient("GET", path, @params);
+        var httpClient = opt.GetLnmClient("GET", path, @params);
         return await httpClient.GetStringAsync($"https://api.lnmarkets.com{path}?{@params}");
     }
 
@@ -147,7 +163,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
 
         var path = "/v2/futures/history/fixing";
         var @params = $"from={fromMs}&to={toMs}&limit={limit}";
-        var httpClient = opt.Value.GetLnmClient("GET", path, @params);
+        var httpClient = opt.GetLnmClient("GET", path, @params);
         return await httpClient.GetStringAsync($"https://api.lnmarkets.com{path}?{@params}");
     }
 
@@ -159,7 +175,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
 
         var path = "/v2/futures/history/index";
         var @params = $"from={fromMs}&to={toMs}&limit={limit}";
-        var httpClient = opt.Value.GetLnmClient("GET", path, @params);
+        var httpClient = opt.GetLnmClient("GET", path, @params);
         return await httpClient.GetStringAsync($"https://api.lnmarkets.com{path}?{@params}");
     }
 
@@ -171,7 +187,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
 
         var path = "/v2/futures/history/price";
         var @params = $"from={fromMs}&to={toMs}&limit={limit}";
-        var httpClient = opt.Value.GetLnmClient("GET", path, @params);
+        var httpClient = opt.GetLnmClient("GET", path, @params);
         return await httpClient.GetStringAsync($"https://api.lnmarkets.com{path}?{@params}");
     }
 
@@ -179,7 +195,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     public async Task<string> Leaderboard()
     {
         var path = "/v2/futures/leaderboard";
-        var httpClient = opt.Value.GetLnmClient("GET", path);
+        var httpClient = opt.GetLnmClient("GET", path);
         return await httpClient.GetStringAsync($"https://api.lnmarkets.com{path}");
     }
 
@@ -187,7 +203,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     public async Task<string> Futures_market()
     {
         var path = "/v2/futures/market";
-        var httpClient = opt.Value.GetLnmClient("GET", path);
+        var httpClient = opt.GetLnmClient("GET", path);
         return await httpClient.GetStringAsync($"https://api.lnmarkets.com{path}");
     }
 
@@ -195,7 +211,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     public async Task<string> Ticker()
     {
         var path = "/v2/futures/ticker";
-        var httpClient = opt.Value.GetLnmClient("GET", path);
+        var httpClient = opt.GetLnmClient("GET", path);
         return await httpClient.GetStringAsync($"https://api.lnmarkets.com{path}");
     }
 
@@ -203,7 +219,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     public async Task<string> Get_futures_trade(string id)
     {
         var path = $"/v2/futures/trades/{id}";
-        var httpClient = opt.Value.GetLnmClient("GET", path);
+        var httpClient = opt.GetLnmClient("GET", path);
         return await httpClient.GetStringAsync($"https://api.lnmarkets.com{path}");
     }
 
@@ -242,7 +258,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
 
         var path = "/v2/futures/ohlcs";
         var @params = $"from={fromMs}&to={toMs}&range={selected.Name}&limit={limit}";
-        var httpClient = opt.Value.GetLnmClient("GET", path, @params);
+        var httpClient = opt.GetLnmClient("GET", path, @params);
         var data = await httpClient.GetFromJsonAsync<List<OhlcModel>>($"https://api.lnmarkets.com{path}?{@params}") ?? new List<OhlcModel>();
         return JsonSerializer.Serialize(data.Select(x => new { x.Open, x.High, x.Low, x.Close, x.Volume, x.Time, x.TimeAsDateTime }));
     }
@@ -257,7 +273,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     public async Task<string> Close_all_options_trades()
     {
         var path = "/v2/options/all/close";
-        var httpClient = opt.Value.GetLnmClient("DELETE", path);
+        var httpClient = opt.GetLnmClient("DELETE", path);
         var response = await httpClient.DeleteAsync($"https://api.lnmarkets.com{path}");
         return await response.Content.ReadAsStringAsync();
     }
@@ -266,7 +282,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     public async Task<string> Get_users_vanilla_options_trades()
     {
         var path = "/v2/options";
-        var httpClient = opt.Value.GetLnmClient("GET", path);
+        var httpClient = opt.GetLnmClient("GET", path);
         return await httpClient.GetStringAsync($"https://api.lnmarkets.com{path}");
     }
 
@@ -281,7 +297,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     {
         var path = "/v2/options";
         var @params = $"{{\"side\":\"{side}\",\"quantity\":{quantity},\"settlement\":\"{settlement}\",\"instrument_name\":\"{instrument_name}\"}}";
-        var httpClient = opt.Value.GetLnmClient("PUT", path, @params);
+        var httpClient = opt.GetLnmClient("PUT", path, @params);
         var response = await httpClient.PutAsync($"https://api.lnmarkets.com{path}", new StringContent(@params, Encoding.UTF8, "application/json"));
         return await response.Content.ReadAsStringAsync();
     }
@@ -291,7 +307,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     {
         var path = "/v2/options";
         var @params = $"id={id}";
-        var httpClient = opt.Value.GetLnmClient("DELETE", path, @params);
+        var httpClient = opt.GetLnmClient("DELETE", path, @params);
         var response = await httpClient.DeleteAsync($"https://api.lnmarkets.com{path}?{@params}");
         return await response.Content.ReadAsStringAsync();
     }
@@ -301,7 +317,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     {
         var path = "/v2/options/instrument";
         var @params = $"instrument_name={instrument_name}";
-        var httpClient = opt.Value.GetLnmClient("GET", path, @params);
+        var httpClient = opt.GetLnmClient("GET", path, @params);
         return await httpClient.GetStringAsync($"https://api.lnmarkets.com{path}?{@params}");
     }
 
@@ -309,7 +325,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     public async Task<string> Get_instruments()
     {
         var path = "/v2/options/instruments";
-        var httpClient = opt.Value.GetLnmClient("GET", path);
+        var httpClient = opt.GetLnmClient("GET", path);
         return await httpClient.GetStringAsync($"https://api.lnmarkets.com{path}");
     }
 
@@ -317,7 +333,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     public async Task<string> Get_a_option_trade_by_id(string id)
     {
         var path = $"/v2/options/trades/{id}";
-        var httpClient = opt.Value.GetLnmClient("GET", path);
+        var httpClient = opt.GetLnmClient("GET", path);
         return await httpClient.GetStringAsync($"https://api.lnmarkets.com{path}");
     }
 
@@ -325,7 +341,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     public async Task<string> Volatility_index()
     {
         var path = "/v2/options/volatility-index";
-        var httpClient = opt.Value.GetLnmClient("GET", path);
+        var httpClient = opt.GetLnmClient("GET", path);
         return await httpClient.GetStringAsync($"https://api.lnmarkets.com{path}");
     }
 
@@ -333,7 +349,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     public async Task<string> Options_market()
     {
         var path = "/v2/options/market";
-        var httpClient = opt.Value.GetLnmClient("GET", path);
+        var httpClient = opt.GetLnmClient("GET", path);
         return await httpClient.GetStringAsync($"https://api.lnmarkets.com{path}");
     }
 
@@ -341,7 +357,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     public async Task<string> Get_users_swaps()
     {
         var path = "/v2/swap";
-        var httpClient = opt.Value.GetLnmClient("GET", path);
+        var httpClient = opt.GetLnmClient("GET", path);
         return await httpClient.GetStringAsync($"https://api.lnmarkets.com{path}");
     }
 
@@ -350,7 +366,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     {
         var path = "/v2/swap";
         var @params = $"{{\"in_amount\": {in_amount}, \"in_asset\": \"{in_asset}\", \"out_asset\": \"{out_asset}\"}}";
-        var httpClient = opt.Value.GetLnmClient("POST", path);
+        var httpClient = opt.GetLnmClient("POST", path);
         var response = await httpClient.PostAsync($"https://api.lnmarkets.com{path}", new StringContent(@params, Encoding.UTF8, "application/json"));
         return await response.Content.ReadAsStringAsync();
     }
@@ -359,7 +375,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     public async Task<string> Get_swap_by_id(string id)
     {
         var path = $"/v2/swap/{id}";
-        var httpClient = opt.Value.GetLnmClient("GET", path);
+        var httpClient = opt.GetLnmClient("GET", path);
         return await httpClient.GetStringAsync($"https://api.lnmarkets.com{path}");
     }
 
@@ -367,7 +383,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     public async Task<string> Get_swap_by_sourceId(string sourceId)
     {
         var path = $"/v2/swap/source/{sourceId}";
-        var httpClient = opt.Value.GetLnmClient("GET", path);
+        var httpClient = opt.GetLnmClient("GET", path);
         return await httpClient.GetStringAsync($"https://api.lnmarkets.com{path}");
     }
 
@@ -375,7 +391,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     public async Task<string> Get_User()
     {
         var path = "/v2/user";
-        var httpClient = opt.Value.GetLnmClient("GET", path);
+        var httpClient = opt.GetLnmClient("GET", path);
         return await httpClient.GetStringAsync($"https://api.lnmarkets.com{path}");
     }
 
@@ -389,7 +405,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     public async Task<string> Get_Bitcoin_Addresses()
     {
         var path = "/v2/user/bitcoin/address";
-        var httpClient = opt.Value.GetLnmClient("GET", path);
+        var httpClient = opt.GetLnmClient("GET", path);
         return await httpClient.GetStringAsync($"https://api.lnmarkets.com{path}");
     }
 
@@ -398,7 +414,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     {
         var path = "/v2/user/bitcoin/address";
         var @params = $"{{\"format\":\"p2wpkh\"}}";
-        var httpClient = opt.Value.GetLnmClient("PUT", path, @params);
+        var httpClient = opt.GetLnmClient("PUT", path, @params);
         var response = await httpClient.PutAsync($"https://api.lnmarkets.com{path}", new StringContent(@params, Encoding.UTF8, "application/json"));
         return await response.Content.ReadAsStringAsync();
     }
@@ -407,7 +423,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     public async Task<string> Get_Deposits()
     {
         var path = "/v2/user/deposit";
-        var httpClient = opt.Value.GetLnmClient("GET", path);
+        var httpClient = opt.GetLnmClient("GET", path);
         return await httpClient.GetStringAsync($"https://api.lnmarkets.com{path}");
     }
 
@@ -415,7 +431,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     public async Task<string> Get_Deposit_By_Id(string id)
     {
         var path = $"/v2/user/deposit/{id}";
-        var httpClient = opt.Value.GetLnmClient("GET", path);
+        var httpClient = opt.GetLnmClient("GET", path);
         return await httpClient.GetStringAsync($"https://api.lnmarkets.com{path}");
     }
 
@@ -424,7 +440,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     {
         var path = "/v2/user/deposit";
         var @params = $"{{\"amount\":{amount}}}";
-        var httpClient = opt.Value.GetLnmClient("POST", path, @params);
+        var httpClient = opt.GetLnmClient("POST", path, @params);
         var response = await httpClient.PostAsync($"https://api.lnmarkets.com{path}", new StringContent(@params, Encoding.UTF8, "application/json"));
         return await response.Content.ReadAsStringAsync();
     }
@@ -434,7 +450,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     {
         var path = "/v2/user/deposit/susd";
         var @params = $"{{\"amount\":{amount},\"currency\":\"{currency}\"}}";
-        var httpClient = opt.Value.GetLnmClient("POST", path);
+        var httpClient = opt.GetLnmClient("POST", path);
         var response = await httpClient.PostAsync($"https://api.lnmarkets.com{path}", new StringContent(@params, Encoding.UTF8, "application/json"));
         return await response.Content.ReadAsStringAsync();
     }
@@ -443,7 +459,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     public async Task<string> Get_withdrawals()
     {
         var path = "/v2/user/withdraw";
-        var httpClient = opt.Value.GetLnmClient("GET", path);
+        var httpClient = opt.GetLnmClient("GET", path);
         return await httpClient.GetStringAsync($"https://api.lnmarkets.com{path}");
     }
 
@@ -452,7 +468,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     {
         var path = "/v2/user/withdraw";
         var @params = $"{{\"invoice\":\"{invoice}\"}}";
-        var httpClient = opt.Value.GetLnmClient("POST", path, @params);
+        var httpClient = opt.GetLnmClient("POST", path, @params);
         var response = await httpClient.PostAsync($"https://api.lnmarkets.com{path}", new StringContent(@params, Encoding.UTF8, "application/json"));
         return await response.Content.ReadAsStringAsync();
     }
@@ -462,7 +478,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     {
         var path = "/v2/user/withdraw/susd";
         var @params = $"{{\"amount\":{amount},\"currency\":\"{currency}\"}}";
-        var httpClient = opt.Value.GetLnmClient("POST", path);
+        var httpClient = opt.GetLnmClient("POST", path);
         var response = await httpClient.PostAsync($"https://api.lnmarkets.com{path}", new StringContent(@params, Encoding.UTF8, "application/json"));
         return await response.Content.ReadAsStringAsync();
     }
@@ -472,7 +488,7 @@ public class LnMarketsTools(IOptions<LnMarketsOptions> opt)
     {
         var path = "/v2/user/transfer";
         var @params = $"{{\"amount\":{amount},\"toUsername\":\"{toUsername}\"}}";
-        var httpClient = opt.Value.GetLnmClient("POST", path);
+        var httpClient = opt.GetLnmClient("POST", path);
         var response = await httpClient.PostAsync($"https://api.lnmarkets.com{path}", new StringContent(@params, Encoding.UTF8, "application/json"));
         return await response.Content.ReadAsStringAsync();
     }
